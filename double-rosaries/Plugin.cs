@@ -18,11 +18,12 @@ namespace double_rosaries
         private static float _rosaryMultiplier = 2;
         private static ManualLogSource Logger;
         private const int DEFAULT_ROSARY_STRING_MACHINE_COST = 80;
+        private static readonly Random Random = new();
         
         private void Awake()
         {
             Harmony.CreateAndPatchAll(typeof(Plugin));
-            _rosaryMultiplier = Config.Bind("Cheats", "RosaryMultiplier", 2.0f, "The multiplier for collecting rosaries. Note that most fractional values won't work.").Value;
+            _rosaryMultiplier = Config.Bind("Cheats", "RosaryMultiplier", 2.0f, "The multiplier for collecting rosaries. Fractional values work by randomly rounding up/down to get the desired multiplier on average.").Value;
             Logger = base.Logger;
             Logger.LogInfo($"Plugin {MyPluginInfo.PLUGIN_GUID} is loaded!");
         }
@@ -31,7 +32,7 @@ namespace double_rosaries
         [HarmonyPrefix]
         private static void AddGeoPrefix(PlayerData __instance, ref int amount)
         {
-            amount = (int)Math.Round(amount*_rosaryMultiplier);
+            amount = RoundRandomly(amount*_rosaryMultiplier);
         }
 
         [HarmonyPatch(typeof(HeroController), "CocoonBroken", new[] { typeof(bool), typeof(bool) })]
@@ -76,6 +77,15 @@ namespace double_rosaries
                     Logger.LogError("Could not find cost reference for rosary_string_machine");
                 }
             }
+        }
+
+        // Round up/down in a way that gives roundMe as an average value
+        // For instance, if roundMe = 1.25, then it will round down to "1" 75% of the time, and round up to "2" 25% of the time
+        private static int RoundRandomly(float roundMe)
+        {
+            int floor = (int)Math.Floor(roundMe);
+            float fractionalPart = roundMe - floor;
+            return fractionalPart > 0 && fractionalPart > Random.NextDouble() ? floor + 1 : floor;
         }
     }
 }
