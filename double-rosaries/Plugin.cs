@@ -15,7 +15,7 @@ namespace double_rosaries
     [BepInProcess("Hollow Knight Silksong.exe")]
     public class Plugin : BaseUnityPlugin
     {
-        private static float _rosaryMultiplier = 2;
+        private static ConfigEntry<float> _rosaryMultiplier;
         private static ManualLogSource Logger;
         private const int DEFAULT_ROSARY_STRING_MACHINE_COST = 80;
         private static readonly Random Random = new();
@@ -23,7 +23,7 @@ namespace double_rosaries
         private void Awake()
         {
             Harmony.CreateAndPatchAll(typeof(Plugin));
-            _rosaryMultiplier = Config.Bind("Cheats", "RosaryMultiplier", 2.0f, "The multiplier for collecting rosaries. Fractional values work by randomly rounding up/down to get the desired multiplier on average.").Value;
+            _rosaryMultiplier = Config.Bind("Cheats", "RosaryMultiplier", 2.0f, "The multiplier for collecting rosaries. Fractional values work by randomly rounding up/down to get the desired multiplier on average.");
             Logger = base.Logger;
             Logger.LogInfo($"Plugin {MyPluginInfo.PLUGIN_GUID} is loaded!");
         }
@@ -32,7 +32,7 @@ namespace double_rosaries
         [HarmonyPrefix]
         private static void AddGeoPrefix(PlayerData __instance, ref int amount)
         {
-            amount = RoundRandomly(amount*_rosaryMultiplier);
+            amount = RoundRandomly(amount*_rosaryMultiplier.Value);
         }
 
         [HarmonyPatch(typeof(HeroController), "CocoonBroken", new[] { typeof(bool), typeof(bool) })]
@@ -40,7 +40,7 @@ namespace double_rosaries
         private static void CocoonBrokenPrefix(ref bool doAirPause, ref bool forceCanBind, HeroController __instance)
         {
             // Prevent player from getting double rosaries when picking up their dead body
-            __instance.playerData.HeroCorpseMoneyPool = (int)Math.Round(__instance.playerData.HeroCorpseMoneyPool/_rosaryMultiplier);
+            __instance.playerData.HeroCorpseMoneyPool = (int)Math.Round(__instance.playerData.HeroCorpseMoneyPool/_rosaryMultiplier.Value);
         }
 
         [HarmonyPatch(typeof(ShopItem), "Cost", MethodType.Getter)]
@@ -51,7 +51,7 @@ namespace double_rosaries
             string key = Traverse.Create(__instance).Field("displayName").Field<string>("Key").Value;
             if (key.StartsWith("INV_NAME_COIN_SET"))
             {
-                __result = (int)Math.Round(__result * _rosaryMultiplier);
+                __result = (int)Math.Round(__result * _rosaryMultiplier.Value);
                 Logger.LogInfo($"Set cost of {key} to {__result}");
             }
         }
@@ -68,7 +68,7 @@ namespace double_rosaries
                 if (costReferenceRef != null)
                 {
                     CostReference costReference = (CostReference)costReferenceRef.Value;
-                    int newCost = (int)Math.Round(DEFAULT_ROSARY_STRING_MACHINE_COST * _rosaryMultiplier);
+                    int newCost = (int)Math.Round(DEFAULT_ROSARY_STRING_MACHINE_COST * _rosaryMultiplier.Value);
                     Traverse.Create(costReference).Field<int>("value").Value = newCost;
                     Logger.LogInfo($"Set cost of rosary string machine to {newCost}"); 
                 }

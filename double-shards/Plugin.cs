@@ -1,5 +1,6 @@
 ﻿using System;
 using BepInEx;
+using BepInEx.Configuration;
 using BepInEx.Logging;
 using HarmonyLib;
 
@@ -9,13 +10,13 @@ namespace double_shards
     [BepInProcess("Hollow Knight Silksong.exe")]
     public class Plugin : BaseUnityPlugin
     {
-        private static float _shardsMultiplier = 2;
+        private static ConfigEntry<float> _shardsMultiplier;
         private static readonly Random Random = new();
 
         private void Awake()
         {
             Harmony.CreateAndPatchAll(typeof(Plugin));
-            _shardsMultiplier = Config.Bind("Cheats", "ShardsMultiplier", 2.0f, "The multiplier for collecting shards. Fractional values work by randomly rounding up/down to get the desired multiplier on average.").Value;
+            _shardsMultiplier = Config.Bind("Cheats", "ShardsMultiplier", 2.0f, "The multiplier for collecting shards. Fractional values work by randomly rounding up/down to get the desired multiplier on average.");
             Logger.LogInfo($"Plugin {MyPluginInfo.PLUGIN_GUID} is loaded!");
         }
 
@@ -23,7 +24,7 @@ namespace double_shards
         [HarmonyPrefix]
         private static void AddShardsPrefix(PlayerData __instance, ref int amount)
         {
-            amount = RoundRandomly(amount* _shardsMultiplier);
+            amount = RoundRandomly(amount* _shardsMultiplier.Value);
         }
 
         // Round up/down in a way that gives roundMe as an average value

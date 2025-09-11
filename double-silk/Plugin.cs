@@ -3,6 +3,7 @@ using BepInEx.Logging;
 using GlobalSettings;
 using HarmonyLib;
 using System;
+using BepInEx.Configuration;
 using static SilkSpool;
 
 namespace double_silk
@@ -11,13 +12,13 @@ namespace double_silk
     [BepInProcess("Hollow Knight Silksong.exe")]
     public class Plugin : BaseUnityPlugin
     {
-        private static float _silkMultiplier = 2;
+        private static ConfigEntry<float> _silkMultiplier;
         private static readonly Random Random = new();
 
         private void Awake()
         {
             Harmony.CreateAndPatchAll(typeof(Plugin));
-            _silkMultiplier = Config.Bind("Cheats", "SilkMultiplier", 2.0f, "The multiplier for generating silk. Fractional values work by randomly rounding up/down to get the desired multiplier on average.").Value;
+            _silkMultiplier = Config.Bind("Cheats", "SilkMultiplier", 2.0f, "The multiplier for generating silk. Fractional values work by randomly rounding up/down to get the desired multiplier on average.");
             Logger.LogInfo($"Plugin {MyPluginInfo.PLUGIN_GUID} is loaded!");
         }
 
@@ -25,7 +26,7 @@ namespace double_silk
         [HarmonyPrefix]
         private static void AddSilkPrefix(ref int amount, ref bool heroEffect, ref SilkSpool.SilkAddSource source, ref bool forceCanBindEffect)
         {
-            amount = RoundRandomly(amount*_silkMultiplier);
+            amount = RoundRandomly(amount*_silkMultiplier.Value);
         }
 
         // Round up/down in a way that gives roundMe as an average value
