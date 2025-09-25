@@ -2,6 +2,7 @@
 using BepInEx;
 using BepInEx.Configuration;
 using BepInEx.Logging;
+using GlobalSettings;
 using HarmonyLib;
 
 namespace double_shards
@@ -11,12 +12,15 @@ namespace double_shards
     public class Plugin : BaseUnityPlugin
     {
         private static ConfigEntry<float> _shardsMultiplier;
+        private static ConfigEntry<float> _maxShardsMultiplier;
+        
         private static readonly Random Random = new();
 
         private void Awake()
         {
             Harmony.CreateAndPatchAll(typeof(Plugin));
             _shardsMultiplier = Config.Bind("Cheats", "ShardsMultiplier", 2.0f, "The multiplier for collecting shards. Fractional values work by randomly rounding up/down to get the desired multiplier on average.");
+            _maxShardsMultiplier = Config.Bind("Cheats", "MaxShardsMultiplier", 1.0f, "The multiplier for increasing the max shards. A value of 1.0 means the max shards are not changed.");
             Logger.LogInfo($"Plugin {MyPluginInfo.PLUGIN_GUID} is loaded!");
         }
 
@@ -25,6 +29,16 @@ namespace double_shards
         private static void AddShardsPrefix(PlayerData __instance, ref int amount)
         {
             amount = RoundRandomly(amount* _shardsMultiplier.Value);
+        }
+
+        [HarmonyPatch(typeof(Gameplay), "GetCurrencyCap")]
+        [HarmonyPostfix]
+        private static void GetCurrencyCapPostfix(ref int __result, CurrencyType type)
+        {
+            if (type == CurrencyType.Shard)
+            {
+                __result = (int)Math.Round(__result * _maxShardsMultiplier.Value);
+            }
         }
 
         // Round up/down in a way that gives roundMe as an average value
